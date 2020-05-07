@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Atmosphère-NX
+ * Copyright (c) 2018-2020 Atmosphère-NX
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -13,15 +13,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 #pragma once
-#include <switch.h>
 #include <stratosphere.hpp>
-#include <stratosphere/dmnt.hpp>
 
-namespace sts::dmnt::cheat {
+namespace ams::dmnt::cheat {
 
-    class CheatService final : public IServiceObject {
+    class CheatService final : public sf::IServiceObject {
         private:
             enum class CommandId {
                 /* Meta */
@@ -29,6 +26,8 @@ namespace sts::dmnt::cheat {
                 GetCheatProcessEvent    = 65001,
                 GetCheatProcessMetadata = 65002,
                 ForceOpenCheatProcess   = 65003,
+                PauseCheatProcess       = 65004,
+                ResumeCheatProcess      = 65005,
 
                 /* Interact with Memory */
                 GetCheatProcessMappingCount = 65100,
@@ -38,12 +37,15 @@ namespace sts::dmnt::cheat {
                 QueryCheatProcessMemory     = 65104,
 
                 /* Interact with Cheats */
-                GetCheatCount = 65200,
-                GetCheats     = 65201,
-                GetCheatById  = 65202,
-                ToggleCheat   = 65203,
-                AddCheat      = 65204,
-                RemoveCheat   = 65205,
+                GetCheatCount        = 65200,
+                GetCheats            = 65201,
+                GetCheatById         = 65202,
+                ToggleCheat          = 65203,
+                AddCheat             = 65204,
+                RemoveCheat          = 65205,
+                ReadStaticRegister   = 65206,
+                WriteStaticRegister  = 65207,
+                ResetStaticRegisters = 65208,
 
                 /* Interact with Frozen Addresses */
                 GetFrozenAddressCount = 65300,
@@ -53,55 +55,65 @@ namespace sts::dmnt::cheat {
                 DisableFrozenAddress  = 65304,
             };
         private:
-            void HasCheatProcess(Out<bool> out);
-            void GetCheatProcessEvent(Out<CopiedHandle> out_event);
-            Result GetCheatProcessMetadata(Out<CheatProcessMetadata> out_metadata);
+            void HasCheatProcess(sf::Out<bool> out);
+            void GetCheatProcessEvent(sf::OutCopyHandle out_event);
+            Result GetCheatProcessMetadata(sf::Out<CheatProcessMetadata> out_metadata);
             Result ForceOpenCheatProcess();
+            Result PauseCheatProcess();
+            Result ResumeCheatProcess();
 
-            Result GetCheatProcessMappingCount(Out<u64> out_count);
-            Result GetCheatProcessMappings(OutBuffer<MemoryInfo> mappings, Out<u64> out_count, u64 offset);
-            Result ReadCheatProcessMemory(OutBuffer<u8> buffer, u64 address, u64 out_size);
-            Result WriteCheatProcessMemory(InBuffer<u8> buffer, u64 address, u64 in_size);
-            Result QueryCheatProcessMemory(Out<MemoryInfo> mapping, u64 address);
+            Result GetCheatProcessMappingCount(sf::Out<u64> out_count);
+            Result GetCheatProcessMappings(const sf::OutArray<MemoryInfo> &mappings, sf::Out<u64> out_count, u64 offset);
+            Result ReadCheatProcessMemory(const sf::OutBuffer &buffer, u64 address, u64 out_size);
+            Result WriteCheatProcessMemory(const sf::InBuffer &buffer, u64 address, u64 in_size);
+            Result QueryCheatProcessMemory(sf::Out<MemoryInfo> mapping, u64 address);
 
-            Result GetCheatCount(Out<u64> out_count);
-            Result GetCheats(OutBuffer<CheatEntry> cheats, Out<u64> out_count, u64 offset);
-            Result GetCheatById(OutBuffer<CheatEntry> cheat, u32 cheat_id);
+            Result GetCheatCount(sf::Out<u64> out_count);
+            Result GetCheats(const sf::OutArray<CheatEntry> &cheats, sf::Out<u64> out_count, u64 offset);
+            Result GetCheatById(sf::Out<CheatEntry> cheat, u32 cheat_id);
             Result ToggleCheat(u32 cheat_id);
-            Result AddCheat(InBuffer<CheatDefinition> cheat, Out<u32> out_cheat_id, bool enabled);
+            Result AddCheat(const CheatDefinition &cheat, sf::Out<u32> out_cheat_id, bool enabled);
             Result RemoveCheat(u32 cheat_id);
+            Result ReadStaticRegister(sf::Out<u64> out, u8 which);
+            Result WriteStaticRegister(u8 which, u64 value);
+            Result ResetStaticRegisters();
 
-            Result GetFrozenAddressCount(Out<u64> out_count);
-            Result GetFrozenAddresses(OutBuffer<FrozenAddressEntry> addresses, Out<u64> out_count, u64 offset);
-            Result GetFrozenAddress(Out<FrozenAddressEntry> entry, u64 address);
-            Result EnableFrozenAddress(Out<u64> out_value, u64 address, u64 width);
+            Result GetFrozenAddressCount(sf::Out<u64> out_count);
+            Result GetFrozenAddresses(const sf::OutArray<FrozenAddressEntry> &addresses, sf::Out<u64> out_count, u64 offset);
+            Result GetFrozenAddress(sf::Out<FrozenAddressEntry> entry, u64 address);
+            Result EnableFrozenAddress(sf::Out<u64> out_value, u64 address, u64 width);
             Result DisableFrozenAddress(u64 address);
 
         public:
             DEFINE_SERVICE_DISPATCH_TABLE {
-                MAKE_SERVICE_COMMAND_META(CheatService, HasCheatProcess),
-                MAKE_SERVICE_COMMAND_META(CheatService, GetCheatProcessEvent),
-                MAKE_SERVICE_COMMAND_META(CheatService, GetCheatProcessMetadata),
-                MAKE_SERVICE_COMMAND_META(CheatService, ForceOpenCheatProcess),
+                MAKE_SERVICE_COMMAND_META(HasCheatProcess),
+                MAKE_SERVICE_COMMAND_META(GetCheatProcessEvent),
+                MAKE_SERVICE_COMMAND_META(GetCheatProcessMetadata),
+                MAKE_SERVICE_COMMAND_META(ForceOpenCheatProcess),
+                MAKE_SERVICE_COMMAND_META(PauseCheatProcess),
+                MAKE_SERVICE_COMMAND_META(ResumeCheatProcess),
 
-                MAKE_SERVICE_COMMAND_META(CheatService, GetCheatProcessMappingCount),
-                MAKE_SERVICE_COMMAND_META(CheatService, GetCheatProcessMappings),
-                MAKE_SERVICE_COMMAND_META(CheatService, ReadCheatProcessMemory),
-                MAKE_SERVICE_COMMAND_META(CheatService, WriteCheatProcessMemory),
-                MAKE_SERVICE_COMMAND_META(CheatService, QueryCheatProcessMemory),
+                MAKE_SERVICE_COMMAND_META(GetCheatProcessMappingCount),
+                MAKE_SERVICE_COMMAND_META(GetCheatProcessMappings),
+                MAKE_SERVICE_COMMAND_META(ReadCheatProcessMemory),
+                MAKE_SERVICE_COMMAND_META(WriteCheatProcessMemory),
+                MAKE_SERVICE_COMMAND_META(QueryCheatProcessMemory),
 
-                MAKE_SERVICE_COMMAND_META(CheatService, GetCheatCount),
-                MAKE_SERVICE_COMMAND_META(CheatService, GetCheats),
-                MAKE_SERVICE_COMMAND_META(CheatService, GetCheatById),
-                MAKE_SERVICE_COMMAND_META(CheatService, ToggleCheat),
-                MAKE_SERVICE_COMMAND_META(CheatService, AddCheat),
-                MAKE_SERVICE_COMMAND_META(CheatService, RemoveCheat),
+                MAKE_SERVICE_COMMAND_META(GetCheatCount),
+                MAKE_SERVICE_COMMAND_META(GetCheats),
+                MAKE_SERVICE_COMMAND_META(GetCheatById),
+                MAKE_SERVICE_COMMAND_META(ToggleCheat),
+                MAKE_SERVICE_COMMAND_META(AddCheat),
+                MAKE_SERVICE_COMMAND_META(RemoveCheat),
+                MAKE_SERVICE_COMMAND_META(ReadStaticRegister),
+                MAKE_SERVICE_COMMAND_META(WriteStaticRegister),
+                MAKE_SERVICE_COMMAND_META(ResetStaticRegisters),
 
-                MAKE_SERVICE_COMMAND_META(CheatService, GetFrozenAddressCount),
-                MAKE_SERVICE_COMMAND_META(CheatService, GetFrozenAddresses),
-                MAKE_SERVICE_COMMAND_META(CheatService, GetFrozenAddress),
-                MAKE_SERVICE_COMMAND_META(CheatService, EnableFrozenAddress),
-                MAKE_SERVICE_COMMAND_META(CheatService, DisableFrozenAddress),
+                MAKE_SERVICE_COMMAND_META(GetFrozenAddressCount),
+                MAKE_SERVICE_COMMAND_META(GetFrozenAddresses),
+                MAKE_SERVICE_COMMAND_META(GetFrozenAddress),
+                MAKE_SERVICE_COMMAND_META(EnableFrozenAddress),
+                MAKE_SERVICE_COMMAND_META(DisableFrozenAddress),
             };
     };
 

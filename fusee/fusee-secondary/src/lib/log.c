@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Atmosphère-NX
+ * Copyright (c) 2018-2020 Atmosphère-NX
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -91,7 +91,7 @@ static void add_prefix(ScreenLogLevel screen_log_level, const char *fmt, char *b
 
 /**
  * print - logs a message and prints it to screen based on its screen_log_level
- * 
+ *
  * If the level is below g_screen_log_level it will not be shown but logged to UART
  * Use SCREEN_LOG_LEVEL_NO_PREFIX if you don't want a prefix to be added
  * UART is TODO

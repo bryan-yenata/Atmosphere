@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Atmosphère-NX
+ * Copyright (c) 2018-2020 Atmosphère-NX
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -45,6 +45,7 @@ static const uint8_t new_device_key_sources[MASTERKEY_NUM_NEW_DEVICE_KEYS][0x10]
     {0x8F, 0x77, 0x5A, 0x96, 0xB0, 0x94, 0xFD, 0x8D, 0x28, 0xE4, 0x19, 0xC8, 0x16, 0x1C, 0xDB, 0x3D}, /* 7.0.0 New Device Key Source. */
     {0x67, 0x62, 0xD4, 0x8E, 0x55, 0xCF, 0xFF, 0x41, 0x31, 0x15, 0x3B, 0x24, 0x0C, 0x7C, 0x07, 0xAE}, /* 8.1.0 New Device Key Source. */
     {0x4A, 0xC3, 0x4E, 0x14, 0x8B, 0x96, 0x4A, 0xD5, 0xD4, 0x99, 0x73, 0xC4, 0x45, 0xAB, 0x8B, 0x49}, /* 9.0.0 New Device Key Source. */
+    {0x14, 0xB8, 0x74, 0x12, 0xCB, 0xBD, 0x0B, 0x8F, 0x20, 0xFB, 0x30, 0xDA, 0x27, 0xE4, 0x58, 0x94}, /* 9.1.0 New Device Key Source. */
 };
 
 static const uint8_t new_device_keygen_sources[MASTERKEY_NUM_NEW_DEVICE_KEYS][0x10] = {
@@ -54,7 +55,8 @@ static const uint8_t new_device_keygen_sources[MASTERKEY_NUM_NEW_DEVICE_KEYS][0x
     {0x81, 0x3C, 0x6C, 0xBF, 0x5D, 0x21, 0xDE, 0x77, 0x20, 0xD9, 0x6C, 0xE3, 0x22, 0x06, 0xAE, 0xBB}, /* 6.2.0 New Device Keygen Source. */
     {0x86, 0x61, 0xB0, 0x16, 0xFA, 0x7A, 0x9A, 0xEA, 0xF6, 0xF5, 0xBE, 0x1A, 0x13, 0x5B, 0x6D, 0x9E}, /* 7.0.0 New Device Keygen Source. */
     {0xA6, 0x81, 0x71, 0xE7, 0xB5, 0x23, 0x74, 0xB0, 0x39, 0x8C, 0xB7, 0xFF, 0xA0, 0x62, 0x9F, 0x8D}, /* 8.1.0 New Device Keygen Source. */
-    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, /* TODO: 9.0.0 New Device Keygen Source to be added on next change-of-keys. */
+    {0x03, 0xE7, 0xEB, 0x43, 0x1B, 0xCF, 0x5F, 0xB5, 0xED, 0xDC, 0x97, 0xAE, 0x21, 0x8D, 0x19, 0xED}, /* 9.0.0 New Device Keygen Source. */
+    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, /* TODO: 9.1.0 New Device Keygen Source to be added on next change-of-keys. */
 };
 
 static const uint8_t new_device_keygen_sources_dev[MASTERKEY_NUM_NEW_DEVICE_KEYS][0x10] = {
@@ -64,7 +66,8 @@ static const uint8_t new_device_keygen_sources_dev[MASTERKEY_NUM_NEW_DEVICE_KEYS
     {0x20, 0xAB, 0xF2, 0x0F, 0x05, 0xE3, 0xDE, 0x2E, 0xA1, 0xFB, 0x37, 0x5E, 0x8B, 0x22, 0x1A, 0x38}, /* 6.2.0 New Device Keygen Source. */
     {0x60, 0xAE, 0x56, 0x68, 0x11, 0xE2, 0x0C, 0x99, 0xDE, 0x05, 0xAE, 0x68, 0x78, 0x85, 0x04, 0xAE}, /* 7.0.0 New Device Keygen Source. */
     {0x94, 0xD6, 0xA8, 0xC0, 0x95, 0xAF, 0xD0, 0xA6, 0x27, 0x53, 0x5E, 0xE5, 0x8E, 0x70, 0x1F, 0x87}, /* 8.1.0 New Device Keygen Source. */
-    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, /* TODO: 9.0.0 New Device Keygen Source to be added on next change-of-keys. */
+    {0x61, 0x6A, 0x88, 0x21, 0xA3, 0x52, 0xB0, 0x19, 0x16, 0x25, 0xA4, 0xE3, 0x4C, 0x54, 0x02, 0x0F}, /* 9.0.0 New Device Keygen Source. */
+    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, /* TODO: 9.1.0 New Device Keygen Source to be added on next change-of-keys. */
 };
 
 static void derive_new_device_keys(unsigned int keygen_keyslot) {
@@ -79,7 +82,7 @@ static void derive_new_device_keys(unsigned int keygen_keyslot) {
             break;
         } else if (relative_revision == mkey_get_revision()) {
             /* On 7.0.0, sept will have derived this key for us already. */
-            if (exosphere_get_target_firmware() < ATMOSPHERE_TARGET_FIRMWARE_700) {
+            if (exosphere_get_target_firmware() < ATMOSPHERE_TARGET_FIRMWARE_7_0_0) {
                 decrypt_data_into_keyslot(KEYSLOT_SWITCH_DEVICEKEY, KEYSLOT_SWITCH_TEMPKEY, work_buffer, 0x10);
             }
         } else {
@@ -103,15 +106,15 @@ static void setup_se(void) {
 
     /* Perform some sanity initialization. */
     volatile tegra_se_t *se = se_get_regs();
-    se->_0x0 &= 0xFFFEFFFF; /* Clear bit 16. */
-    (void)(se->FLAGS_REG);
+    se->SE_SE_SECURITY &= 0xFFFEFFFF; /* Clear bit 16. */
+    (void)(se->SE_STATUS);
     __dsb_sy();
 
     /* NOTE: On 8.1.0+, Nintendo does not make keyslots 0-5 unreadable. */
-    se->_0x4 = 0;
-    se->AES_KEY_READ_DISABLE_REG = 0;
-    se->RSA_KEY_READ_DISABLE_REG = 0;
-    se->_0x0 &= 0xFFFFFFFB;
+    se->SE_TZRAM_SECURITY = 0;
+    se->SE_CRYPTO_SECURITY_PERKEY = 0;
+    se->SE_RSA_SECURITY_PERKEY = 0;
+    se->SE_SE_SECURITY &= 0xFFFFFFFB;
 
     /* Currently unknown what each flag does. */
     for (unsigned int i = 0; i < KEYSLOT_AES_MAX; i++) {
@@ -130,23 +133,15 @@ static void setup_se(void) {
     mkey_detect_revision();
 
     /* Derive new device keys. */
-    switch (exosphere_get_target_firmware()) {
-        case ATMOSPHERE_TARGET_FIRMWARE_100:
-        case ATMOSPHERE_TARGET_FIRMWARE_200:
-        case ATMOSPHERE_TARGET_FIRMWARE_300:
-            break;
-        case ATMOSPHERE_TARGET_FIRMWARE_400:
-            derive_new_device_keys(KEYSLOT_SWITCH_4XNEWDEVICEKEYGENKEY);
-            break;
-        case ATMOSPHERE_TARGET_FIRMWARE_500:
-        case ATMOSPHERE_TARGET_FIRMWARE_600:
-        case ATMOSPHERE_TARGET_FIRMWARE_620:
-        case ATMOSPHERE_TARGET_FIRMWARE_700:
-        case ATMOSPHERE_TARGET_FIRMWARE_800:
-        case ATMOSPHERE_TARGET_FIRMWARE_810:
-        case ATMOSPHERE_TARGET_FIRMWARE_900:
+    {
+        const uint32_t target_fw = exosphere_get_target_firmware();
+        if (target_fw >= ATMOSPHERE_TARGET_FIRMWARE_5_0_0) {
             derive_new_device_keys(KEYSLOT_SWITCH_5XNEWDEVICEKEYGENKEY);
-            break;
+        } else if (target_fw >= ATMOSPHERE_TARGET_FIRMWARE_4_0_0) {
+            derive_new_device_keys(KEYSLOT_SWITCH_4XNEWDEVICEKEYGENKEY);
+        } else {
+            /* No new keys to derive */
+        }
     }
 
     se_initialize_rng(KEYSLOT_SWITCH_DEVICEKEY);
@@ -171,7 +166,7 @@ static void setup_boot_config(void) {
         bootconfig_clear();
     } else {
         void *bootconfig_ptr = NX_BOOTLOADER_BOOTCONFIG_POINTER;
-        if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_600) {
+        if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_6_0_0) {
             bootconfig_ptr = NX_BOOTLOADER_BOOTCONFIG_POINTER_6X;
         }
         flush_dcache_range((uint8_t *)bootconfig_ptr, (uint8_t *)bootconfig_ptr + sizeof(bootconfig_t));
@@ -334,7 +329,7 @@ static bool validate_package2_metadata(package2_meta_t *metadata) {
 
     /* Perform version checks. */
     /* We will be compatible with all package2s released before current, but not newer ones. */
-    if (metadata->version_max >= PACKAGE2_MINVER_THEORETICAL && metadata->version_min < PACKAGE2_MAXVER_900_CURRENT) {
+    if (metadata->version_max >= PACKAGE2_MINVER_THEORETICAL && metadata->version_min < PACKAGE2_MAXVER_1000_CURRENT) {
         return true;
     }
 
@@ -442,28 +437,20 @@ static void load_package2_sections(package2_meta_t *metadata, uint32_t master_ke
 
 static void copy_warmboot_bin_to_dram() {
     uint8_t *warmboot_src;
-    switch (exosphere_get_target_firmware()) {
-        case ATMOSPHERE_TARGET_FIRMWARE_100:
-        case ATMOSPHERE_TARGET_FIRMWARE_200:
-        case ATMOSPHERE_TARGET_FIRMWARE_300:
-        default:
-            generic_panic();
-            break;
-        case ATMOSPHERE_TARGET_FIRMWARE_400:
-        case ATMOSPHERE_TARGET_FIRMWARE_500:
-            warmboot_src = (uint8_t *)0x4003B000;
-            break;
-        case ATMOSPHERE_TARGET_FIRMWARE_600:
-        case ATMOSPHERE_TARGET_FIRMWARE_620:
-            warmboot_src = (uint8_t *)0x4003D800;
-            break;
-        case ATMOSPHERE_TARGET_FIRMWARE_700:
-        case ATMOSPHERE_TARGET_FIRMWARE_800:
-        case ATMOSPHERE_TARGET_FIRMWARE_810:
-        case ATMOSPHERE_TARGET_FIRMWARE_900:
+
+    {
+        const uint32_t target_fw = exosphere_get_target_firmware();
+        if (target_fw >= ATMOSPHERE_TARGET_FIRMWARE_7_0_0) {
             warmboot_src = (uint8_t *)0x4003E000;
-            break;
+        } else if (target_fw >= ATMOSPHERE_TARGET_FIRMWARE_6_2_0) {
+            warmboot_src = (uint8_t *)0x4003D800;
+        } else if (target_fw >= ATMOSPHERE_TARGET_FIRMWARE_4_0_0) {
+            warmboot_src = (uint8_t *)0x4003B000;
+        } else {
+            return;
+        }
     }
+
     uint8_t *warmboot_dst = (uint8_t *)0x8000D000;
     const size_t warmboot_size = 0x2000;
 
@@ -507,39 +494,39 @@ void load_package2(coldboot_crt0_reloc_list_t *reloc_list) {
     if (exosphere_should_disable_usermode_exception_handlers() != 0) {
         configitem_disable_usermode_exception_handlers();
     }
+    if (exosphere_should_enable_usermode_pmu_access()) {
+        configitem_enable_usermode_pmu_access();
+    }
 
     /* Setup the Security Engine. */
     setup_se();
 
     /* Perform initial PMC register writes, if relevant. */
-    if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_400) {
+    if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_4_0_0) {
         MAKE_REG32(PMC_BASE + 0x054) = 0x8000D000;
         MAKE_REG32(PMC_BASE + 0x0A0) &= 0xFFF3FFFF;
         MAKE_REG32(PMC_BASE + 0x818) &= 0xFFFFFFFE;
         MAKE_REG32(PMC_BASE + 0x334) |= 0x10;
-        switch (exosphere_get_target_firmware()) {
-            case ATMOSPHERE_TARGET_FIRMWARE_400:
-                MAKE_REG32(PMC_BASE + 0x360) = 0x105;
-                break;
-            case ATMOSPHERE_TARGET_FIRMWARE_500:
-                MAKE_REG32(PMC_BASE + 0x360) = 6;
-                break;
-            case ATMOSPHERE_TARGET_FIRMWARE_600:
-                MAKE_REG32(PMC_BASE + 0x360) = 0x87;
-                break;
-            case ATMOSPHERE_TARGET_FIRMWARE_620:
-                MAKE_REG32(PMC_BASE + 0x360) = 0xA8;
-                break;
-            case ATMOSPHERE_TARGET_FIRMWARE_700:
-            case ATMOSPHERE_TARGET_FIRMWARE_800:
-                MAKE_REG32(PMC_BASE + 0x360) = 0x129;
-                break;
-            case ATMOSPHERE_TARGET_FIRMWARE_810:
-                MAKE_REG32(PMC_BASE + 0x360) = 0x14A;
-                break;
-            case ATMOSPHERE_TARGET_FIRMWARE_900:
-                MAKE_REG32(PMC_BASE + 0x360) = 0x16B;
-                break;
+
+        const uint32_t target_fw = exosphere_get_target_firmware();
+        if (target_fw >= ATMOSPHERE_TARGET_FIRMWARE_10_0_0) {
+            MAKE_REG32(PMC_BASE + 0x360) = 0x105;
+        } else if (target_fw >= ATMOSPHERE_TARGET_FIRMWARE_9_1_0) {
+            MAKE_REG32(PMC_BASE + 0x360) = 0x18C;
+        } else if (target_fw >= ATMOSPHERE_TARGET_FIRMWARE_9_0_0) {
+            MAKE_REG32(PMC_BASE + 0x360) = 0x16B;
+        } else if (target_fw >= ATMOSPHERE_TARGET_FIRMWARE_8_1_0) {
+            MAKE_REG32(PMC_BASE + 0x360) = 0x14A;
+        } else if (target_fw >= ATMOSPHERE_TARGET_FIRMWARE_7_0_0) {
+            MAKE_REG32(PMC_BASE + 0x360) = 0x129;
+        } else if (target_fw >= ATMOSPHERE_TARGET_FIRMWARE_6_2_0) {
+            MAKE_REG32(PMC_BASE + 0x360) = 0x0A8;
+        } else if (target_fw >= ATMOSPHERE_TARGET_FIRMWARE_6_0_0) {
+            MAKE_REG32(PMC_BASE + 0x360) = 0x087;
+        } else if (target_fw >= ATMOSPHERE_TARGET_FIRMWARE_5_0_0) {
+            MAKE_REG32(PMC_BASE + 0x360) = 0x006;
+        } else if (target_fw >= ATMOSPHERE_TARGET_FIRMWARE_4_0_0) {
+            MAKE_REG32(PMC_BASE + 0x360) = 0x105;
         }
     }
 
@@ -571,7 +558,7 @@ void load_package2(coldboot_crt0_reloc_list_t *reloc_list) {
     setup_boot_config();
 
     /* Set sysctr0 registers based on bootconfig. */
-    if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_400) {
+    if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_4_0_0) {
         uint64_t sysctr0_val = bootconfig_get_value_for_sysctr0();
         MAKE_SYSCTR0_REG(0x8) = (uint32_t)((sysctr0_val >> 0) & 0xFFFFFFFFULL);
         MAKE_SYSCTR0_REG(0xC) = (uint32_t)((sysctr0_val >> 32) & 0xFFFFFFFFULL);
@@ -579,10 +566,10 @@ void load_package2(coldboot_crt0_reloc_list_t *reloc_list) {
     }
 
     /* Synchronize with NX BOOTLOADER. */
-    if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_400) {
+    if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_4_0_0) {
         sync_with_nx_bootloader(NX_BOOTLOADER_STATE_DRAM_INITIALIZED_4X);
         copy_warmboot_bin_to_dram();
-        if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_600) {
+        if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_6_0_0) {
             setup_dram_magic_numbers();
         }
         sync_with_nx_bootloader(NX_BOOTLOADER_STATE_LOADED_PACKAGE2_4X);
@@ -635,7 +622,7 @@ void load_package2(coldboot_crt0_reloc_list_t *reloc_list) {
     }
 
     /* Synchronize with NX BOOTLOADER. */
-    if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_400) {
+    if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_4_0_0) {
         sync_with_nx_bootloader(NX_BOOTLOADER_STATE_FINISHED_4X);
         setup_4x_mmio();
     } else {

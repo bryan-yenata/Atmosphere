@@ -43,6 +43,10 @@
 #include "offsets/810_exfat.h"
 #include "offsets/900.h"
 #include "offsets/900_exfat.h"
+#include "offsets/910.h"
+#include "offsets/910_exfat.h"
+#include "offsets/1000.h"
+#include "offsets/1000_exfat.h"
 #include "../utils/fatal.h"
 
 #define GET_OFFSET_STRUCT_NAME(vers) g_offsets##vers
@@ -96,6 +100,10 @@ DEFINE_OFFSET_STRUCT(_810);
 DEFINE_OFFSET_STRUCT(_810_EXFAT);
 DEFINE_OFFSET_STRUCT(_900);
 DEFINE_OFFSET_STRUCT(_900_EXFAT);
+DEFINE_OFFSET_STRUCT(_910);
+DEFINE_OFFSET_STRUCT(_910_EXFAT);
+DEFINE_OFFSET_STRUCT(_1000);
+DEFINE_OFFSET_STRUCT(_1000_EXFAT);
 
 const fs_offsets_t *get_fs_offsets(enum FS_VER version) {
     switch (version) {
@@ -153,6 +161,14 @@ const fs_offsets_t *get_fs_offsets(enum FS_VER version) {
             return &(GET_OFFSET_STRUCT_NAME(_900));
         case FS_VER_9_0_0_EXFAT:
             return &(GET_OFFSET_STRUCT_NAME(_900_EXFAT));
+        case FS_VER_9_1_0:
+            return &(GET_OFFSET_STRUCT_NAME(_910));
+        case FS_VER_9_1_0_EXFAT:
+            return &(GET_OFFSET_STRUCT_NAME(_910_EXFAT));
+        case FS_VER_10_0_0:
+            return &(GET_OFFSET_STRUCT_NAME(_1000));
+        case FS_VER_10_0_0_EXFAT:
+            return &(GET_OFFSET_STRUCT_NAME(_1000_EXFAT));
         default:
             fatal_abort(Fatal_UnknownVersion);
     }

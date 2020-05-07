@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Atmosphère-NX
+ * Copyright (c) 2018-2020 Atmosphère-NX
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -13,9 +13,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #include <stdint.h>
-#include <atmosphere/version.h>
+#include <vapours/ams_version.h>
 
 #include "bootconfig.h"
 #include "configitem.h"
@@ -38,6 +38,7 @@
 static bool g_hiz_mode_enabled = false;
 static bool g_debugmode_override_user = false, g_debugmode_override_priv = false;
 static bool g_enable_usermode_exception_handlers = true;
+static bool g_enable_usermode_pmu_access = false;
 
 uint32_t configitem_set(bool privileged, ConfigItem item, uint64_t value) {
     switch (item) {
@@ -63,14 +64,14 @@ uint32_t configitem_set(bool privileged, ConfigItem item, uint64_t value) {
                         /* Set SVC handler to jump to reboot stub in IRAM. */
                         MAKE_REG32(MMIO_GET_DEVICE_ADDRESS(MMIO_DEVID_RTC_PMC) + 0x520ull) = 0x4003F000;
                         MAKE_REG32(MMIO_GET_DEVICE_ADDRESS(MMIO_DEVID_RTC_PMC) + 0x53Cull) = 0x6000F208;
-                        
+
                         /* Copy reboot stub payload. */
                         ams_map_irampage(0x4003F000);
                         for (unsigned int i = 0; i < rebootstub_bin_size; i += 4) {
                             MAKE_REG32(MMIO_GET_DEVICE_ADDRESS(MMIO_DEVID_AMS_IRAM_PAGE) + i) = read32le(rebootstub_bin, i);
                         }
                         ams_unmap_irampage();
-                        
+
                         /* Ensure stub is flushed. */
                         flush_dcache_all();
                         break;
@@ -95,7 +96,7 @@ uint32_t configitem_set(bool privileged, ConfigItem item, uint64_t value) {
                 /* Set SVC handler to jump to reboot stub in IRAM. */
                 MAKE_REG32(MMIO_GET_DEVICE_ADDRESS(MMIO_DEVID_RTC_PMC) + 0x520ull) = 0x4003F000;
                 MAKE_REG32(MMIO_GET_DEVICE_ADDRESS(MMIO_DEVID_RTC_PMC) + 0x53Cull) = 0x6000F208;
-                
+
                 /* Copy reboot stub payload. */
                 ams_map_irampage(0x4003F000);
                 for (unsigned int i = 0; i < rebootstub_bin_size; i += 4) {
@@ -104,7 +105,7 @@ uint32_t configitem_set(bool privileged, ConfigItem item, uint64_t value) {
                 /* Tell rebootstub to shut down. */
                 MAKE_REG32(MMIO_GET_DEVICE_ADDRESS(MMIO_DEVID_AMS_IRAM_PAGE) + 0x10) = 0x0;
                 ams_unmap_irampage();
-                
+
                 MAKE_REG32(MMIO_GET_DEVICE_ADDRESS(MMIO_DEVID_RTC_PMC) + 0x400ull) = 0x10;
                 while (1) { }
             }
@@ -112,7 +113,7 @@ uint32_t configitem_set(bool privileged, ConfigItem item, uint64_t value) {
         default:
             return 2;
     }
-    
+
     return 0;
 }
 
@@ -168,6 +169,10 @@ void configitem_disable_usermode_exception_handlers(void) {
     g_enable_usermode_exception_handlers = false;
 }
 
+void configitem_enable_usermode_pmu_access(void) {
+    g_enable_usermode_pmu_access = true;
+}
+
 uint32_t configitem_get(bool privileged, ConfigItem item, uint64_t *p_outvalue) {
     uint32_t result = 0;
     switch (item) {
@@ -182,11 +187,10 @@ uint32_t configitem_get(bool privileged, ConfigItem item, uint64_t *p_outvalue) 
             *p_outvalue = INTERRUPT_ID_USER_SECURITY_ENGINE;
             break;
         case CONFIGITEM_VERSION:
-            /* Always returns maxver - 1 on hardware. */
-            *p_outvalue = PACKAGE2_MAXVER_400_410 - 1;
+            *p_outvalue = fuse_get_expected_fuse_version(exosphere_get_target_firmware());
             break;
         case CONFIGITEM_HARDWARETYPE:
-            *p_outvalue = fuse_get_hardware_type();
+            *p_outvalue = fuse_get_hardware_type(exosphere_get_target_firmware());
             break;
         case CONFIGITEM_ISRETAIL:
             *p_outvalue = fuse_get_retail_type();
@@ -199,7 +203,7 @@ uint32_t configitem_get(bool privileged, ConfigItem item, uint64_t *p_outvalue) 
             break;
         case CONFIGITEM_BOOTREASON:
             /* For some reason, Nintendo removed it on 4.0 */
-            if (exosphere_get_target_firmware() < ATMOSPHERE_TARGET_FIRMWARE_400) {
+            if (exosphere_get_target_firmware() < ATMOSPHERE_TARGET_FIRMWARE_4_0_0) {
                 *p_outvalue = bootconfig_get_boot_reason();
             } else {
                 result = 2;
@@ -222,6 +226,10 @@ uint32_t configitem_get(bool privileged, ConfigItem item, uint64_t *p_outvalue) 
                 if (g_enable_usermode_exception_handlers) {
                     config |= KERNELCONFIGFLAG_ENABLE_USER_EXCEPTION_HANDLERS;
                 }
+                /* Allow for enabling usermode pmu access. */
+                if (g_enable_usermode_pmu_access) {
+                    config |= KERNELCONFIGFLAG_ENABLE_USER_PMU_ACCESS;
+                }
                 *p_outvalue = config;
             }
             break;
@@ -230,7 +238,7 @@ uint32_t configitem_get(bool privileged, ConfigItem item, uint64_t *p_outvalue) 
             break;
         case CONFIGITEM_ISQUESTUNIT:
             /* Added on 3.0, used to determine whether console is a kiosk unit. */
-            if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_300) {
+            if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_3_0_0) {
                 *p_outvalue = (fuse_get_reserved_odm(4) >> 10) & 1;
             } else {
                 result = 2;
@@ -238,7 +246,7 @@ uint32_t configitem_get(bool privileged, ConfigItem item, uint64_t *p_outvalue) 
             break;
         case CONFIGITEM_NEWHARDWARETYPE_5X:
             /* Added in 5.x, currently hardcoded to 0. */
-            if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_500) {
+            if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_5_0_0) {
                 *p_outvalue = 0;
             } else {
                 result = 2;
@@ -246,7 +254,7 @@ uint32_t configitem_get(bool privileged, ConfigItem item, uint64_t *p_outvalue) 
             break;
         case CONFIGITEM_NEWKEYGENERATION_5X:
             /* Added in 5.x. */
-            if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_500) {
+            if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_5_0_0) {
                 *p_outvalue = fuse_get_5x_key_generation();
             } else {
                 result = 2;
@@ -254,7 +262,7 @@ uint32_t configitem_get(bool privileged, ConfigItem item, uint64_t *p_outvalue) 
             break;
         case CONFIGITEM_PACKAGE2HASH_5X:
             /* Added in 5.x. */
-            if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_500 && bootconfig_is_recovery_boot()) {
+            if (exosphere_get_target_firmware() >= ATMOSPHERE_TARGET_FIRMWARE_5_0_0 && bootconfig_is_recovery_boot()) {
                 bootconfig_get_package2_hash_for_recovery(p_outvalue);
             } else {
                 result = 2;
@@ -262,11 +270,11 @@ uint32_t configitem_get(bool privileged, ConfigItem item, uint64_t *p_outvalue) 
             break;
         case CONFIGITEM_EXOSPHERE_VERSION:
             /* UNOFFICIAL: Gets information about the current exosphere version. */
-            *p_outvalue = ((uint64_t)(ATMOSPHERE_RELEASE_VERSION_MAJOR & 0xFF) << 32ull) | 
-                          ((uint64_t)(ATMOSPHERE_RELEASE_VERSION_MINOR & 0xFF) << 24ull) |
-                          ((uint64_t)(ATMOSPHERE_RELEASE_VERSION_MICRO & 0xFF) << 16ull) |
-                          ((uint64_t)(exosphere_get_target_firmware() & 0xFF) << 8ull) |
-                          ((uint64_t)(mkey_get_revision() & 0xFF) << 0ull);
+            *p_outvalue = ((uint64_t)(ATMOSPHERE_RELEASE_VERSION_MAJOR & 0xFF) << 56ull) |
+                          ((uint64_t)(ATMOSPHERE_RELEASE_VERSION_MINOR & 0xFF) << 48ull) |
+                          ((uint64_t)(ATMOSPHERE_RELEASE_VERSION_MICRO & 0xFF) << 40ull) |
+                          ((uint64_t)(mkey_get_revision()              & 0xFF) << 32ull) |
+                          ((uint64_t)(exosphere_get_target_firmware())         << 0ull);
             break;
         case CONFIGITEM_NEEDS_REBOOT:
             /* UNOFFICIAL: The fact that we are executing means we aren't in the process of rebooting. */
@@ -282,7 +290,15 @@ uint32_t configitem_get(bool privileged, ConfigItem item, uint64_t *p_outvalue) 
             break;
         case CONFIGITEM_HAS_RCM_BUG_PATCH:
             /* UNOFFICIAL: Gets whether this unit has the RCM bug patched. */
-            *p_outvalue = (int)(fuse_has_rcm_bug_patch());;
+            *p_outvalue = (int)(fuse_has_rcm_bug_patch());
+            break;
+        case CONFIGITEM_SHOULD_BLANK_PRODINFO:
+            /* UNOFFICIAL: Gets whether this unit should simulate a "blanked" PRODINFO. */
+            *p_outvalue = exosphere_should_blank_prodinfo();
+            break;
+        case CONFIGITEM_ALLOW_CAL_WRITES:
+            /* UNOFFICIAL: Gets whether this unit should allow writing to the calibration partition. */
+            *p_outvalue = exosphere_should_allow_writing_to_cal();
             break;
         default:
             result = 2;

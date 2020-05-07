@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Atmosphère-NX
+ * Copyright (c) 2018-2020 Atmosphère-NX
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -13,20 +13,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 #pragma once
 #include <stratosphere.hpp>
-#include <stratosphere/dmnt.hpp>
 
-namespace sts::dmnt::cheat::impl {
+namespace ams::dmnt::cheat::impl {
+
+    void InitializeCheatManager();
 
     bool GetHasActiveCheatProcess();
     Handle GetCheatProcessEventHandle();
     Result GetCheatProcessMetadata(CheatProcessMetadata *out);
     Result ForceOpenCheatProcess();
+    Result PauseCheatProcess();
+    Result ResumeCheatProcess();
 
     Result ReadCheatProcessMemoryUnsafe(u64 process_addr, void *out_data, size_t size);
     Result WriteCheatProcessMemoryUnsafe(u64 process_addr, void *data, size_t size);
+
+    Result PauseCheatProcessUnsafe();
+    Result ResumeCheatProcessUnsafe();
 
     Result GetCheatProcessMappingCount(u64 *out_count);
     Result GetCheatProcessMappings(MemoryInfo *mappings, size_t max_count, u64 *out_count, u64 offset);
@@ -38,8 +43,11 @@ namespace sts::dmnt::cheat::impl {
     Result GetCheats(CheatEntry *cheats, size_t max_count, u64 *out_count, u64 offset);
     Result GetCheatById(CheatEntry *out_cheat, u32 cheat_id);
     Result ToggleCheat(u32 cheat_id);
-    Result AddCheat(u32 *out_id, const CheatDefinition *def, bool enabled);
+    Result AddCheat(u32 *out_id, const CheatDefinition &def, bool enabled);
     Result RemoveCheat(u32 cheat_id);
+    Result ReadStaticRegister(u64 *out, size_t which);
+    Result WriteStaticRegister(size_t which, u64 value);
+    Result ResetStaticRegisters();
 
     Result GetFrozenAddressCount(u64 *out_count);
     Result GetFrozenAddresses(FrozenAddressEntry *frz_addrs, size_t max_count, u64 *out_count, u64 offset);

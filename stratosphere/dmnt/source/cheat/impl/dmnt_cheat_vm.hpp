@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Atmosphère-NX
+ * Copyright (c) 2018-2020 Atmosphère-NX
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -13,13 +13,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 #pragma once
-#include <stdarg.h>
 #include <stratosphere.hpp>
-#include <stratosphere/dmnt.hpp>
 
-namespace sts::dmnt::cheat::impl {
+namespace ams::dmnt::cheat::impl {
 
     enum CheatVmOpcodeType : u32 {
         CheatVmOpcodeType_StoreStatic = 0,
@@ -45,12 +42,15 @@ namespace sts::dmnt::cheat::impl {
         CheatVmOpcodeType_BeginRegisterConditionalBlock = 0xC0,
         CheatVmOpcodeType_SaveRestoreRegister = 0xC1,
         CheatVmOpcodeType_SaveRestoreRegisterMask = 0xC2,
+        CheatVmOpcodeType_ReadWriteStaticRegister = 0xC3,
 
         /* This is a meta entry, and not a real opcode. */
         /* This is to facilitate multi-nybble instruction decoding. */
         CheatVmOpcodeType_DoubleExtendedWidth = 0xF0,
 
         /* Double-extended width opcodes. */
+        CheatVmOpcodeType_PauseProcess = 0xFF0,
+        CheatVmOpcodeType_ResumeProcess = 0xFF1,
         CheatVmOpcodeType_DebugLog = 0xFFF,
     };
 
@@ -226,6 +226,11 @@ namespace sts::dmnt::cheat::impl {
         bool should_operate[0x10];
     };
 
+    struct ReadWriteStaticRegisterOpcode {
+        u32 static_idx;
+        u32 idx;
+    };
+
     struct DebugLogOpcode {
         u32 bit_width;
         u32 log_id;
@@ -255,6 +260,7 @@ namespace sts::dmnt::cheat::impl {
             BeginRegisterConditionalOpcode begin_reg_cond;
             SaveRestoreRegisterOpcode save_restore_reg;
             SaveRestoreRegisterMaskOpcode save_restore_regmask;
+            ReadWriteStaticRegisterOpcode rw_static_reg;
             DebugLogOpcode debug_log;
         };
     };
@@ -263,6 +269,9 @@ namespace sts::dmnt::cheat::impl {
         public:
             constexpr static size_t MaximumProgramOpcodeCount = 0x400;
             constexpr static size_t NumRegisters = 0x10;
+            constexpr static size_t NumReadableStaticRegisters = 0x80;
+            constexpr static size_t NumWritableStaticRegisters = 0x80;
+            constexpr static size_t NumStaticRegisters = NumReadableStaticRegisters + NumWritableStaticRegisters;
         private:
             size_t num_opcodes = 0;
             size_t instruction_ptr = 0;
@@ -271,6 +280,7 @@ namespace sts::dmnt::cheat::impl {
             u32 program[MaximumProgramOpcodeCount] = {0};
             u64 registers[NumRegisters] = {0};
             u64 saved_values[NumRegisters] = {0};
+            u64 static_registers[NumStaticRegisters] = {0};
             size_t loop_tops[NumRegisters] = {0};
         private:
             bool DecodeNextOpcode(CheatVmOpcode *out);
@@ -297,9 +307,24 @@ namespace sts::dmnt::cheat::impl {
 
             bool LoadProgram(const CheatEntry *cheats, size_t num_cheats);
             void Execute(const CheatProcessMetadata *metadata);
+
+            u64 GetStaticRegister(size_t which) const {
+                return this->static_registers[which];
+            }
+
+            void SetStaticRegister(size_t which, u64 value) {
+                this->static_registers[which] = value;
+            }
+
+            void ResetStaticRegisters() {
+                std::memset(this->static_registers, 0, sizeof(this->static_registers));
+            }
     #ifdef DMNT_CHEAT_VM_DEBUG_LOG
         private:
-            FILE *debug_log_file = NULL;
+            fs::FileHandle debug_log_file;
+            s64 debug_log_file_offset;
+            bool has_debug_log_file;
+            char debug_log_format_buf[0x100];
     #endif
     };
 

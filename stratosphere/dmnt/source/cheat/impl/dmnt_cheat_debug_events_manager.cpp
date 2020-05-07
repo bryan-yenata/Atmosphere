@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Atmosphère-NX
+ * Copyright (c) 2018-2020 Atmosphère-NX
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -13,22 +13,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 #include "dmnt_cheat_debug_events_manager.hpp"
 
 /* WORKAROUND: This design prevents a kernel deadlock from occurring on 6.0.0+ */
 
-namespace sts::dmnt::cheat::impl {
+namespace ams::dmnt::cheat::impl {
 
     namespace {
 
         class DebugEventsManager {
             public:
                 static constexpr size_t NumCores = 4;
+                static constexpr size_t ThreadStackSize = os::MemoryPageSize;
             private:
-                HosMessageQueue message_queues[NumCores];
-                HosThread threads[NumCores];
-                HosSignal continued_signal;
+                std::array<uintptr_t, NumCores> message_queue_buffers;
+                std::array<os::MessageQueue, NumCores> message_queues;
+                std::array<os::ThreadType, NumCores> threads;
+                os::Event continued_event;
+
+                alignas(os::MemoryPageSize) u8 thread_stacks[NumCores][ThreadStackSize];
             private:
                 static void PerCoreThreadFunction(void *_this) {
                     /* This thread will wait on the appropriate message queue. */
@@ -39,7 +42,7 @@ namespace sts::dmnt::cheat::impl {
                         Handle debug_handle = this_ptr->WaitReceiveHandle(current_core);
 
                         /* Continue events on the correct core. */
-                        R_ASSERT(this_ptr->ContinueDebugEvent(debug_handle));
+                        R_ABORT_UNLESS(this_ptr->ContinueDebugEvent(debug_handle));
 
                         /* Signal that we've continued. */
                         this_ptr->SignalContinued();
@@ -51,10 +54,10 @@ namespace sts::dmnt::cheat::impl {
                     size_t target_core = NumCores - 1;
 
                     /* Retrieve correct core for new thread event. */
-                    if (dbg_event.type == svc::DebugEventType::AttachThread) {
+                    if (dbg_event.type == svc::DebugEvent_AttachThread) {
                         u64 out64 = 0;
                         u32 out32 = 0;
-                        R_ASSERT(svcGetDebugThreadParam(&out64, &out32, debug_handle, dbg_event.info.attach_thread.thread_id, DebugThreadParam_CurrentCore));
+                        R_ABORT_UNLESS(svcGetDebugThreadParam(&out64, &out32, debug_handle, dbg_event.info.attach_thread.thread_id, DebugThreadParam_CurrentCore));
                         target_core = out32;
                     }
 
@@ -72,7 +75,7 @@ namespace sts::dmnt::cheat::impl {
                 }
 
                 Result ContinueDebugEvent(Handle debug_handle) {
-                    if (GetRuntimeFirmwareVersion() >= FirmwareVersion_300) {
+                    if (hos::GetVersion() >= hos::Version_3_0_0) {
                         return svcContinueDebugEvent(debug_handle, 5, nullptr, 0);
                     } else {
                         return svcLegacyContinueDebugEvent(debug_handle, 5, 0);
@@ -80,25 +83,33 @@ namespace sts::dmnt::cheat::impl {
                 }
 
                 void WaitContinued() {
-                    this->continued_signal.Wait();
-                    this->continued_signal.Reset();
+                    this->continued_event.Wait();
                 }
 
                 void SignalContinued() {
-                    this->continued_signal.Signal();
+                    this->continued_event.Signal();
                 }
 
             public:
-                DebugEventsManager() : message_queues{HosMessageQueue(1), HosMessageQueue(1), HosMessageQueue(1), HosMessageQueue(1)} {
+                DebugEventsManager()
+                    : message_queues{
+                        os::MessageQueue(std::addressof(message_queue_buffers[0]), 1),
+                        os::MessageQueue(std::addressof(message_queue_buffers[1]), 1),
+                        os::MessageQueue(std::addressof(message_queue_buffers[2]), 1),
+                        os::MessageQueue(std::addressof(message_queue_buffers[3]), 1)},
+                     continued_event(os::EventClearMode_AutoClear),
+                     thread_stacks{}
+                {
                     for (size_t i = 0; i < NumCores; i++) {
                         /* Create thread. */
-                        R_ASSERT(this->threads[i].Initialize(&DebugEventsManager::PerCoreThreadFunction, reinterpret_cast<void *>(this), 0x1000, 24, i));
+                        R_ABORT_UNLESS(os::CreateThread(std::addressof(this->threads[i]), PerCoreThreadFunction, this, this->thread_stacks[i], ThreadStackSize, AMS_GET_SYSTEM_THREAD_PRIORITY(dmnt, MultiCoreEventManager), i));
+                        os::SetThreadNamePointer(std::addressof(this->threads[i]), AMS_GET_SYSTEM_THREAD_NAME(dmnt, MultiCoreEventManager));
 
                         /* Set core mask. */
-                        R_ASSERT(svcSetThreadCoreMask(this->threads[i].GetHandle(), i, (1u << i)));
+                        os::SetThreadCoreMask(std::addressof(this->threads[i]), i, (1u << i));
 
                         /* Start thread. */
-                        R_ASSERT(this->threads[i].Start());
+                        os::StartThread(std::addressof(this->threads[i]));
                     }
                 }
 
@@ -106,8 +117,8 @@ namespace sts::dmnt::cheat::impl {
                     /* Loop getting all debug events. */
                     svc::DebugEventInfo d;
                     size_t target_core = NumCores - 1;
-                    while (R_SUCCEEDED(svcGetDebugEvent(reinterpret_cast<u8 *>(&d), cheat_dbg_hnd))) {
-                        if (d.type == svc::DebugEventType::AttachThread) {
+                    while (R_SUCCEEDED(svc::GetDebugEvent(std::addressof(d), cheat_dbg_hnd))) {
+                        if (d.type == svc::DebugEvent_AttachThread) {
                             target_core = GetTargetCore(d, cheat_dbg_hnd);
                         }
                     }
@@ -119,12 +130,16 @@ namespace sts::dmnt::cheat::impl {
         };
 
         /* Manager global. */
-        DebugEventsManager g_events_manager;
+        TYPED_STORAGE(DebugEventsManager) g_events_manager;
 
     }
 
+    void InitializeDebugEventsManager() {
+        new (GetPointer(g_events_manager)) DebugEventsManager;
+    }
+
     void ContinueCheatProcess(Handle cheat_dbg_hnd) {
-        g_events_manager.ContinueCheatProcess(cheat_dbg_hnd);
+        GetReference(g_events_manager).ContinueCheatProcess(cheat_dbg_hnd);
     }
 
 }

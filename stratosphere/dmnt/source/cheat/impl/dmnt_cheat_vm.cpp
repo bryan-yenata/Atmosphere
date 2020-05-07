@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Atmosphère-NX
+ * Copyright (c) 2018-2020 Atmosphère-NX
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -13,52 +13,74 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 #include <sys/stat.h>
 #include "dmnt_cheat_vm.hpp"
 #include "dmnt_cheat_api.hpp"
 
-namespace sts::dmnt::cheat::impl {
+namespace ams::dmnt::cheat::impl {
 
     void CheatVirtualMachine::DebugLog(u32 log_id, u64 value) {
         /* Just unconditionally try to create the log folder. */
-        mkdir("/atmosphere/cheat_vm_logs", 0777);
-        FILE *f_log = NULL;
+        fs::EnsureDirectoryRecursively("sdmc:/atmosphere/cheat_vm_logs");
+
+        fs::FileHandle log_file;
         {
-            char log_path[FS_MAX_PATH];
-            snprintf(log_path, sizeof(log_path), "/atmosphere/cheat_vm_logs/%x.log", log_id);
-            f_log = fopen(log_path, "ab");
+            char log_path[fs::EntryNameLengthMax + 1];
+            std::snprintf(log_path, sizeof(log_path), "sdmc:/atmosphere/cheat_vm_logs/%08x.log", log_id);
+            if (R_FAILED(fs::OpenFile(std::addressof(log_file), log_path, fs::OpenMode_Write | fs::OpenMode_AllowAppend))) {
+                return;
+            }
         }
-        if (f_log != NULL) {
-            ON_SCOPE_EXIT { fclose(f_log); };
-            fprintf(f_log, "%016lx\n", value);
+        ON_SCOPE_EXIT { fs::CloseFile(log_file); };
+
+        s64 log_offset;
+        if (R_FAILED(fs::GetFileSize(std::addressof(log_offset), log_file))) {
+            return;
         }
+
+        char log_value[18];
+        std::snprintf(log_value, sizeof(log_value), "%016lx\n", value);
+        fs::WriteFile(log_file, log_offset, log_value, std::strlen(log_value), fs::WriteOption::Flush);
     }
 
     void CheatVirtualMachine::OpenDebugLogFile() {
         #ifdef DMNT_CHEAT_VM_DEBUG_LOG
         CloseDebugLogFile();
-        this->debug_log_file = fopen("cheat_vm_log.txt", "ab");
+        R_ABORT_UNLESS(fs::OpenFile(std::addressof(this->debug_log_file), "sdmc:/atmosphere/cheat_vm_logs/debug_log.txt"));
+        this->debug_log_file_offset = 0;
         #endif
     }
 
     void CheatVirtualMachine::CloseDebugLogFile() {
         #ifdef DMNT_CHEAT_VM_DEBUG_LOG
-        if (this->debug_log_file != NULL) {
-            fclose(this->debug_log_file);
-            this->debug_log_file = NULL;
+        if (this->has_debug_log_file) {
+            fs::CloseFile(this->debug_log_file);
         }
+        this->has_debug_log_file = false;
         #endif
     }
 
     void CheatVirtualMachine::LogToDebugFile(const char *format, ...) {
         #ifdef DMNT_CHEAT_VM_DEBUG_LOG
-        if (this->debug_log_file != NULL) {
-            va_list arglist;
-            va_start(arglist, format);
-            vfprintf(this->debug_log_file, format, arglist);
-            va_end(arglist);
+        if (!this->has_debug_log_file) {
+            return;
         }
+
+        {
+            std::va_list vl;
+            va_start(vl, format);
+            std::vsnprintf(this->debug_log_format_buf, sizeof(this->debug_log_format_buf) - 1, format, vl);
+            va_end(vl);
+        }
+
+        size_t fmt_len = std::strlen(this->debug_log_format_buf);
+        if (this->debug_log_format_buf[fmt_len - 1] != '\n') {
+            this->debug_log_format_buf[fmt_len + 0] = '\n';
+            this->debug_log_format_buf[fmt_len + 1] = '\x00';
+            fmt_len += 1;
+        }
+
+        fs::WriteFile(this->debug_log_file, this->debug_log_offset, this->debug_log_format_buf, fmt_len, fs::WriteOption::Flush);
         #endif
     }
 
@@ -214,6 +236,22 @@ namespace sts::dmnt::cheat::impl {
                 for (size_t i = 0; i < NumRegisters; i++) {
                     this->LogToDebugFile("Act[%02x]:   %d\n", i, opcode->save_restore_regmask.should_operate[i]);
                 }
+                break;
+            case CheatVmOpcodeType_ReadWriteStaticRegister:
+                this->LogToDebugFile("Opcode: Read/Write Static Register\n");
+                if (opcode->rw_static_reg.static_idx < NumReadableStaticRegisters) {
+                    this->LogToDebugFile("Op Type: ReadStaticRegister\n");
+                } else {
+                    this->LogToDebugFile("Op Type: WriteStaticRegister\n");
+                }
+                this->LogToDebugFile("Reg Idx:   %x\n", opcode->rw_static_reg.idx);
+                this->LogToDebugFile("Stc Idx:   %x\n", opcode->rw_static_reg.static_idx);
+                break;
+            case CheatVmOpcodeType_PauseProcess:
+                this->LogToDebugFile("Opcode: Pause Cheat Process\n");
+                break;
+            case CheatVmOpcodeType_ResumeProcess:
+                this->LogToDebugFile("Opcode: Resume Cheat Process\n");
                 break;
             case CheatVmOpcodeType_DebugLog:
                 this->LogToDebugFile("Opcode: Debug Log\n");
@@ -548,6 +586,30 @@ namespace sts::dmnt::cheat::impl {
                     }
                 }
                 break;
+            case CheatVmOpcodeType_ReadWriteStaticRegister:
+                {
+                    /* C3000XXx */
+                    /* C3 = opcode 0xC3. */
+                    /* XX = static register index. */
+                    /* x  = register index. */
+                    opcode.rw_static_reg.static_idx = ((first_dword >> 4) & 0xFF);
+                    opcode.rw_static_reg.idx        = (first_dword & 0xF);
+                }
+                break;
+            case CheatVmOpcodeType_PauseProcess:
+                {
+                    /* FF0????? */
+                    /* FF0 = opcode 0xFF0 */
+                    /* Pauses the current process. */
+                }
+                break;
+            case CheatVmOpcodeType_ResumeProcess:
+                {
+                    /* FF1????? */
+                    /* FF1 = opcode 0xFF1 */
+                    /* Resumes the current process. */
+                }
+                break;
             case CheatVmOpcodeType_DebugLog:
                 {
                     /* FFFTIX## */
@@ -631,7 +693,7 @@ namespace sts::dmnt::cheat::impl {
             /* However, I don't actually believe it is possible for this to happen. */
             /* I guess we'll throw a fatal error here, so as to encourage me to fix the VM */
             /* in the event that someone triggers it? I don't know how you'd do that. */
-            fatalSimple(ResultDmntCheatVmInvalidCondDepth);
+            R_ABORT_UNLESS(ResultVirtualMachineInvalidConditionDepth());
         }
     }
 
@@ -1132,8 +1194,8 @@ namespace sts::dmnt::cheat::impl {
                         case SaveRestoreRegisterOpType_ClearRegs:
                         case SaveRestoreRegisterOpType_Restore:
                         default:
-                            src = this->registers;
-                            dst = this->saved_values;
+                            src = this->saved_values;
+                            dst = this->registers;
                             break;
                     }
                     for (size_t i = 0; i < NumRegisters; i++) {
@@ -1151,6 +1213,21 @@ namespace sts::dmnt::cheat::impl {
                             }
                         }
                     }
+                    break;
+                case CheatVmOpcodeType_ReadWriteStaticRegister:
+                    if (cur_opcode.rw_static_reg.static_idx < NumReadableStaticRegisters) {
+                        /* Load a register with a static register. */
+                        this->registers[cur_opcode.rw_static_reg.idx] = this->static_registers[cur_opcode.rw_static_reg.static_idx];
+                    } else {
+                        /* Store a register to a static register. */
+                        this->static_registers[cur_opcode.rw_static_reg.static_idx] = this->registers[cur_opcode.rw_static_reg.idx];
+                    }
+                    break;
+                case CheatVmOpcodeType_PauseProcess:
+                    dmnt::cheat::impl::PauseCheatProcessUnsafe();
+                    break;
+                case CheatVmOpcodeType_ResumeProcess:
+                    dmnt::cheat::impl::ResumeCheatProcessUnsafe();
                     break;
                 case CheatVmOpcodeType_DebugLog:
                     {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Atmosphère-NX
+ * Copyright (c) 2018-2020 Atmosphère-NX
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -26,7 +26,7 @@
 
 /* Physaddr 0x40002EF8 */
 static inline uintptr_t get_nx_bootloader_mailbox_base(unsigned int targetfw) {
-    return MMIO_GET_DEVICE_ADDRESS(MMIO_DEVID_NXBOOTLOADER_MAILBOX) + ((targetfw >= ATMOSPHERE_TARGET_FIRMWARE_700) ? (0x000ull) : (0xE00ull));
+    return MMIO_GET_DEVICE_ADDRESS(MMIO_DEVID_NXBOOTLOADER_MAILBOX) + ((targetfw >= ATMOSPHERE_TARGET_FIRMWARE_7_0_0) ? (0x000ull) : (0xE00ull));
 }
 
 #define MAILBOX_NX_BOOTLOADER_BASE(targetfw) (get_nx_bootloader_mailbox_base(targetfw))
@@ -72,7 +72,9 @@ static inline uintptr_t get_nx_bootloader_mailbox_base(unsigned int targetfw) {
 #define PACKAGE2_MAXVER_620 0x9
 #define PACKAGE2_MAXVER_700_800 0xA
 #define PACKAGE2_MAXVER_810 0xB
-#define PACKAGE2_MAXVER_900_CURRENT 0xC
+#define PACKAGE2_MAXVER_900 0xC
+#define PACKAGE2_MAXVER_910_920 0xD
+#define PACKAGE2_MAXVER_1000_CURRENT 0xE
 
 #define PACKAGE2_MINVER_100 0x3
 #define PACKAGE2_MINVER_200 0x4
@@ -84,7 +86,9 @@ static inline uintptr_t get_nx_bootloader_mailbox_base(unsigned int targetfw) {
 #define PACKAGE2_MINVER_620 0xA
 #define PACKAGE2_MINVER_700_800 0xB
 #define PACKAGE2_MINVER_810 0xC
-#define PACKAGE2_MINVER_900_CURRENT 0xD
+#define PACKAGE2_MINVER_900 0xD
+#define PACKAGE2_MINVER_910_920 0xE
+#define PACKAGE2_MINVER_1000_CURRENT 0xF
 
 typedef struct {
     union {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Atmosphère-NX
+ * Copyright (c) 2018-2020 Atmosphère-NX
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -15,19 +15,24 @@
  */
 
 #pragma once
-#include <switch.h>
 #include <stratosphere.hpp>
 
-#include "../utils.hpp"
+namespace ams::mitm::bpc {
 
-class BpcAtmosphereService : public IServiceObject {
-    enum class CommandId {
-        RebootToFatalError = 65000,
+    class AtmosphereService final : public sf::IServiceObject {
+        private:
+            enum class CommandId {
+                RebootToFatalError = 65000,
+                SetRebootPayload   = 65001,
+            };
+        private:
+            void RebootToFatalError(const ams::FatalErrorContext &ctx);
+            void SetRebootPayload(const ams::sf::InBuffer &payload);
+        public:
+            DEFINE_SERVICE_DISPATCH_TABLE {
+                MAKE_SERVICE_COMMAND_META(RebootToFatalError),
+                MAKE_SERVICE_COMMAND_META(SetRebootPayload),
+            };
     };
-    private:
-        Result RebootToFatalError(InBuffer<AtmosphereFatalErrorContext> ctx);
-    public:
-        DEFINE_SERVICE_DISPATCH_TABLE {
-            MAKE_SERVICE_COMMAND_META(BpcAtmosphereService, RebootToFatalError),
-        };
-};
+
+}

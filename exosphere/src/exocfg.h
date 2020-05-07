@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Atmosphère-NX
+ * Copyright (c) 2018-2020 Atmosphère-NX
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -18,7 +18,7 @@
 #define EXOSPHERE_EXOSPHERE_CONFIG_H
 
 #include <stdint.h>
-#include <atmosphere.h>
+#include <vapours/ams_version.h>
 #include "utils.h"
 
 #include "memory_map.h"
@@ -40,6 +40,9 @@
 #define EXOSPHERE_FLAG_IS_DEBUGMODE_PRIV                    (1 << 1u)
 #define EXOSPHERE_FLAG_IS_DEBUGMODE_USER                    (1 << 2u)
 #define EXOSPHERE_FLAG_DISABLE_USERMODE_EXCEPTION_HANDLERS  (1 << 3u)
+#define EXOSPHERE_FLAG_ENABLE_USERMODE_PMU_ACCESS           (1 << 4u)
+#define EXOSPHERE_FLAG_BLANK_PRODINFO                       (1 << 5u)
+#define EXOSPHERE_FLAG_ALLOW_WRITING_TO_CAL_SYSMMC          (1 << 6u)
 #define EXOSPHERE_FLAGS_DEFAULT (EXOSPHERE_FLAG_IS_DEBUGMODE_PRIV)
 
 typedef struct {
@@ -58,6 +61,9 @@ unsigned int exosphere_should_perform_620_keygen(void);
 unsigned int exosphere_should_override_debugmode_priv(void);
 unsigned int exosphere_should_override_debugmode_user(void);
 unsigned int exosphere_should_disable_usermode_exception_handlers(void);
+unsigned int exosphere_should_enable_usermode_pmu_access(void);
+unsigned int exosphere_should_blank_prodinfo(void);
+unsigned int exosphere_should_allow_writing_to_cal(void);
 
 const exo_emummc_config_t *exosphere_get_emummc_config(void);
 
@@ -66,7 +72,7 @@ static inline unsigned int exosphere_get_target_firmware_for_init(void) {
     if (magic == MAGIC_EXOSPHERE_CONFIG) {
         return MAILBOX_EXOSPHERE_CONFIG_PHYS.target_firmware;
     } else {
-        return ATMOSPHERE_TARGET_FIRMWARE_DEFAULT_FOR_DEBUG;
+        return ATMOSPHERE_TARGET_FIRMWARE_CURRENT;
     }
 }
 
